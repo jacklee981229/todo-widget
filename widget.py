@@ -127,6 +127,8 @@ class Widget:
         if previous:
             user32.SetForegroundWindow(previous)
         self.raised = False
+        # Ticked items start hidden every time; unlike Group this isn't saved, so the list always opens short.
+        self.expanded = False
         self.items, self.problem, self.editing, self.delete_armed = [], None, None, False
         self.seen = "unread"
         self.poll()
@@ -356,27 +358,62 @@ class Widget:
         if self.filter.get() not in names:
             self.filter.set(ALL)
         view = None if self.filter.get() == ALL else self.filter.get()
-        # A plain list is one group with no heading; its items carry their project as a tag instead.
-        groups = todos.grouped(self.items, view) if self.grouped else [(None, todos.listed(self.items, view))]
-        groups = [(name, group) for name, group in groups if group]
+        open_groups = self.layout([i for i in self.items if not i["done"]], view)
+        done_groups = self.layout([i for i in self.items if i["done"]], view)
         self.group_toggle.configure(fg=ACCENT if self.grouped else MUTED)
-        self.count.configure(text=f"{sum(not i['done'] for _, group in groups for i in group)} open")
-        top = self.canvas.yview()[0]
+        self.count.configure(text=f"{sum(len(group) for _, group in open_groups)} open")
+        # Keep the view where it was in pixels, so the Expand line stays put when clicked; the same fraction of a
+        # list that just grew would land far below it.
+        top = self.canvas.canvasy(0)
         for child in self.list.winfo_children():
             child.destroy()
-        if not groups:
+        if not open_groups and not done_groups:
             tk.Label(self.list, text="Nothing to do yet.\nClick + to add a to-do, or ask Claude in any project to add one.",
                      bg=BG, fg=MUTED, font=SMALL, justify="left", anchor="w",
                      wraplength=p(WIDTH - 2 * PAD - 14)).pack(fill="x")
+        self.show_groups(open_groups, view)
+        if done_groups:
+            self.divider()
+            if self.expanded:
+                self.show_groups(done_groups, view)
+        self.list.update_idletasks()
+        self.fit_list()
+        self.canvas.yview_moveto(top / max(self.list.winfo_reqheight(), self.canvas.winfo_height(), 1))
+
+    def layout(self, items, view):
+        # A plain list is one group with no heading; its items carry their project as a tag instead.
+        groups = todos.grouped(items, view) if self.grouped else [(None, todos.listed(items, view))]
+        return [(name, group) for name, group in groups if group]
+
+    def show_groups(self, groups, view):
+        p = self.px
         for n, (name, group) in enumerate(groups):
             if view is None and name:
                 tk.Label(self.list, text=name, bg=BG, fg=MUTED, font=GROUP, anchor="w").pack(
                     fill="x", pady=(p(8) if n else 0, p(4)))
             for item in group:
                 self.row(item, tag=item["project"] if view is None and not name else "")
-        self.list.update_idletasks()
-        self.fit_list()
-        self.canvas.yview_moveto(top)
+
+    def divider(self):
+        """The line between open and ticked items; a click anywhere on it shows or hides the ticked ones."""
+        p = self.px
+        line = tk.Frame(self.list, bg=BG, cursor="hand2")
+        line.pack(fill="x", pady=(p(4), p(10)))
+        label = tk.Label(line, text="Collapse" if self.expanded else "Expand", bg=BG, fg=MUTED, font=SMALL,
+                         cursor="hand2")
+        label.grid(row=0, column=1, padx=p(8))
+        parts = [line, label]
+        for column in (0, 2):
+            line.columnconfigure(column, weight=1)
+            rule = tk.Frame(line, bg=TRACK, height=1, cursor="hand2")
+            rule.grid(row=0, column=column, sticky="ew")
+            parts.append(rule)
+        for part in parts:
+            part.bind("<Button-1>", lambda e: self.toggle_expanded())
+
+    def toggle_expanded(self):
+        self.expanded = not self.expanded
+        self.render()
 
     def row(self, item, tag=""):
         p = self.px

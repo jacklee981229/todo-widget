@@ -10,7 +10,7 @@ A small to-do list on your desktop for your personal projects. You add to it, an
 ## Use it
 
 - **Add:** click **+**, type the to-do, pick or type a project, and add notes if you like. Enter saves, Esc cancels. In a one-project view, the project is filled in for you.
-- **Tick:** click the box. Ticked items move below the open ones, struck through, and stay until you delete them.
+- **Tick:** click the box. Ticked items move below a line under the open ones, struck through, and stay until you delete them. The line hides them: click **Expand** to show them and **Collapse** to hide them again. The widget always starts with them hidden.
 - **Edit or delete:** click the item. Delete asks for a second click.
 - **Grouped or one list:** click **Group** in the header. Orange means grouped under project headings; grey means one list, oldest first, with each item's project as a small grey tag (hidden when the box shows one project). The widget starts the way you left it.
 - **Move or exit:** drag the header to move it; it reopens where you left it. Right-click the header and choose Exit.
