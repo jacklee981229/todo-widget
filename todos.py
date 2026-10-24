@@ -10,10 +10,13 @@ import sys
 import tempfile
 import time
 import uuid
+from datetime import datetime, timedelta
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 TODO_FILE = HERE / "data" / "todos.json"
+ARCHIVE_FILE = HERE / "data" / "archive.json"
+ARCHIVE_AFTER = timedelta(days=7)
 PROJECTS_ROOT = HERE.parent
 GENERAL = "General"
 PROJECT_MARKERS = ("CLAUDE.md", "README.md", "TESTING.md")
@@ -79,10 +82,19 @@ def edit(items, item_id, text, project, notes):
         item.update(changes)
 
 
+def set_done(item, done):
+    """Tick or untick, noting when it was ticked so ticked items can show the latest first."""
+    item["done"] = done
+    if done:
+        item["done_at"] = datetime.now().isoformat(timespec="seconds")
+    else:
+        item.pop("done_at", None)
+
+
 def toggle(items, item_id):
     item = find(items, item_id)
     if item:
-        item["done"] = not item["done"]
+        set_done(item, not item["done"])
 
 
 def tick(items, project, text):
@@ -92,12 +104,39 @@ def tick(items, project, text):
     if len(matches) != 1:
         found = "no open to-do" if not matches else f"{len(matches)} open to-dos"
         raise ValueError(f'{found} "{text}" in {project or GENERAL}.')
-    matches[0]["done"] = True
+    set_done(matches[0], True)
     return matches[0]
+
+
+def stale(items, now):
+    """Ticked items to archive (ticked over a week ago) or to start the clock on (ticked before times were kept)."""
+    return [i for i in items if i["done"] and ("done_at" not in i or datetime.fromisoformat(i["done_at"]) <= now - ARCHIVE_AFTER)]
+
+
+def tidy(items, now, archive_path=ARCHIVE_FILE):
+    """Move items ticked over a week ago into the archive file, which keeps them, so the ticked list stays short.
+    Items ticked before tick times were kept start their week now."""
+    for item in items:
+        if item["done"] and "done_at" not in item:
+            item["done_at"] = now.isoformat(timespec="seconds")
+    old = {i["id"] for i in stale(items, now)}
+    if old:
+        archived = load(archive_path)
+        kept = {i["id"] for i in archived}
+        # The archive is saved first: a crash before the list is saved leaves an item in both, never in neither.
+        save(archived + [i for i in items if i["id"] in old and i["id"] not in kept], archive_path)
+        items[:] = [i for i in items if i["id"] not in old]
 
 
 def delete(items, item_id):
     items[:] = [i for i in items if i["id"] != item_id]
+
+
+def shown_order(items):
+    """Open items in the order added, then ticked ones, the latest ticked first. Items ticked before tick times were
+    kept come last, in the order added."""
+    ticked = sorted((i for i in items if i["done"]), key=lambda i: i.get("done_at", ""), reverse=True)
+    return [i for i in items if not i["done"]] + ticked
 
 
 def grouped(items, project=None):
@@ -109,13 +148,12 @@ def grouped(items, project=None):
         if project is None or name == project:
             groups.setdefault(name, []).append(item)
     order = sorted(groups, key=lambda name: (name == GENERAL, name.lower()))
-    return [(name, sorted(groups[name], key=lambda i: i["done"])) for name in order]
+    return [(name, shown_order(groups[name])) for name in order]
 
 
 def listed(items, project=None):
-    """Items to show as one list, without project headings: open items before ticked ones, each in the order added.
-    Given a project, only that one."""
-    return sorted((i for i in items if project is None or (i["project"] or GENERAL) == project), key=lambda i: i["done"])
+    """Items to show as one list, without project headings, in shown_order. Given a project, only that one."""
+    return shown_order([i for i in items if project is None or (i["project"] or GENERAL) == project])
 
 
 def project_suggestions(items, root=PROJECTS_ROOT):

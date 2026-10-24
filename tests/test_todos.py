@@ -2,6 +2,7 @@ import io
 import tempfile
 import unittest
 from contextlib import redirect_stdout
+from datetime import datetime
 from pathlib import Path
 
 import todos
@@ -102,6 +103,51 @@ class TodosTest(unittest.TestCase):
         self.assertEqual([i["text"] for i in todos.listed(items, "lan-drop")], ["New", "Old"])
         self.assertEqual([i["text"] for i in todos.listed(items, "General")], ["Errand"])
         self.assertEqual(todos.listed(items, "gone"), [])
+
+    def test_ticked_items_show_the_latest_ticked_first_and_untimed_ones_last(self):
+        items = []
+        for text in ("Untimed", "First", "Second", "Open", "Also untimed"):
+            todos.add(items, text, "lan-drop")
+        items[0]["done"] = items[4]["done"] = True  # ticked before tick times were kept
+        items[1].update(done=True, done_at="2026-10-24T09:00:00")
+        items[2].update(done=True, done_at="2026-10-24T21:30:00")
+        expected = ["Open", "Second", "First", "Untimed", "Also untimed"]
+        self.assertEqual([i["text"] for i in todos.listed(items)], expected)
+        self.assertEqual([i["text"] for _, group in todos.grouped(items) for i in group], expected)
+
+    def test_ticking_notes_the_time_and_unticking_clears_it(self):
+        items = []
+        item = todos.add(items, "Post", "jacks-space")
+        todos.toggle(items, item["id"])
+        self.assertRegex(item["done_at"], r"^\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d$")
+        todos.toggle(items, item["id"])
+        self.assertNotIn("done_at", item)
+        self.assertIn("done_at", todos.tick(items, "jacks-space", "Post"))
+
+    def test_tidy_archives_items_ticked_over_a_week_ago_and_keeps_the_rest(self):
+        archive = self.root / "data" / "archive.json"
+        now = datetime(2026, 10, 31, 12, 0, 0)
+        items = []
+        for text in ("Old", "Week to the second", "Recent", "Open", "Untimed"):
+            todos.add(items, text, "lan-drop")
+        items[0].update(done=True, done_at="2026-10-20T08:00:00")
+        items[1].update(done=True, done_at="2026-10-24T12:00:00")
+        items[2].update(done=True, done_at="2026-10-30T09:00:00")
+        items[4]["done"] = True
+        todos.save([{**items[0]}], archive)  # already archived once, e.g. after a crash
+        self.assertEqual([i["text"] for i in todos.stale(items, now)], ["Old", "Week to the second", "Untimed"])
+        todos.tidy(items, now, archive)
+        self.assertEqual([i["text"] for i in items], ["Recent", "Open", "Untimed"])
+        self.assertEqual(items[2]["done_at"], "2026-10-31T12:00:00")  # its week starts now
+        self.assertEqual([i["text"] for i in todos.load(archive)], ["Old", "Week to the second"])
+        self.assertEqual(todos.stale(items, now), [])
+
+    def test_tidy_with_nothing_old_leaves_no_archive_file(self):
+        archive = self.root / "data" / "archive.json"
+        items = []
+        todos.add(items, "Open", "lan-drop")
+        todos.tidy(items, datetime(2026, 10, 31), archive)
+        self.assertFalse(archive.exists())
 
     def test_project_suggestions_are_project_folders_and_used_names(self):
         repos = self.root / "repos"

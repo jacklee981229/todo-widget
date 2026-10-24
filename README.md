@@ -5,14 +5,16 @@ A small to-do list on your desktop for your personal projects. You add to it, an
 - Each to-do has a project and can have notes, such as where you left off. The box at the top shows all projects or just one.
 - It sits just above the desktop, behind all your windows, like the usage widget. Win+D (or a click on the desktop) brings it to the front, and you can click it to type. It stays out of the taskbar and Alt+Tab.
 - It starts when you sign in to Windows.
+- It matches the usage widget: the same dark card, and an accent (the **+**, ticks, Save) that changes colour each day, round the rainbow from red on Monday to violet on Sunday.
+- Both widgets use Hanken Grotesk, under the SIL Open Font License, from `fonts\`. Only the widget loads it, so nothing is installed in Windows; without the files it falls back to Segoe UI.
 - Every change is saved in `data\todos.json`. The widget checks that file every 2 seconds, so items Claude adds appear on their own.
 
 ## Use it
 
 - **Add:** click **+**, type the to-do, pick or type a project, and add notes if you like. Enter saves, Esc cancels. In a one-project view, the project is filled in for you.
-- **Tick:** click the box. Ticked items move below a line under the open ones, struck through, and stay until you delete them. The line hides them: click **Expand** to show them and **Collapse** to hide them again. The widget always starts with them hidden.
+- **Tick:** click the box. For 5 seconds after a tick, **Undo** at the bottom brings the item back. Ticked items move below a line under the open ones, struck through, the latest ticked first. A week after its tick, an item moves to `data\archive.json`, which keeps it; ask Claude to bring one back. The line hides them: click **Expand** to show them and **Collapse** to hide them again. The widget always starts with them hidden.
 - **Edit or delete:** click the item. Delete asks for a second click.
-- **Grouped or one list:** click **Group** in the header. Orange means grouped under project headings; grey means one list, oldest first, with each item's project as a small grey tag (hidden when the box shows one project). The widget starts the way you left it.
+- **Grouped or one list:** click **Group** in the header. Coloured means grouped under project headings; grey means one list, oldest first, with each item's project in small grey letters under it (hidden when the box shows one project). The widget starts the way you left it.
 - **Move or exit:** drag the header to move it; it reopens where you left it. Right-click the header and choose Exit.
 
 The Project box suggests your project folders (any folder in `C:\repos\Jack` with a CLAUDE.md, README.md or TESTING.md) and the names you've already used. Any name works.
