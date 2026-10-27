@@ -50,10 +50,10 @@ It prints `Ticked in jacks-space: Plan: 2048 Bot`. If no open item has that text
 
 ## Start with Windows
 
-A shortcut named `To-do widget` in your Startup folder starts the widget when you sign in (press Win+R and type `shell:startup` to see it). Delete the shortcut to stop that. If you move this folder, run this from the new folder to make the shortcut again:
+A shortcut named `To-do widget` in your Startup folder starts the widget when you sign in (press Win+R and type `shell:startup` to see it). Delete the shortcut to stop that.
+
+The shortcut runs `To-do.exe`, a copy of Python's `pythonw.exe` beside it in the Python folder, renamed so Task Manager lists the widget as "To-do" instead of Python. It still runs `widget.py` from this folder, so a code change needs only a restart. Reinstalling Python or moving this folder breaks the shortcut; close the widget (right-click, Exit), then run this from this folder to make both again:
 
 ```powershell
-$s = (New-Object -ComObject WScript.Shell).CreateShortcut("$([Environment]::GetFolderPath('Startup'))\To-do widget.lnk"); $s.TargetPath = "$env:WINDIR\pyw.exe"; $s.Arguments = 'widget.py'; $s.WorkingDirectory = "$PWD"; $s.Save()
+python startup.py
 ```
-
-`pyw.exe` is the Python launcher without a console window, so the shortcut keeps working after a Python upgrade.
