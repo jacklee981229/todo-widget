@@ -9,7 +9,7 @@ import os
 import tkinter as tk
 import tkinter.font
 from ctypes import wintypes
-from datetime import date, datetime
+from datetime import datetime
 from pathlib import Path
 from tkinter import ttk
 
@@ -20,13 +20,14 @@ VIEW_FILE = Path(__file__).resolve().parent / "data" / "view.json"
 POLL_MS = 2_000
 UNDO_MS = 5_000
 WIDTH, HEIGHT, PAD = 320, 440, 14
-# The usage widget's colours, so the two cards match.
-BG, FIELD, TEXT, MUTED, TRACK = "#171717", "#2a2a2a", "#ededed", "#a3a3a3", "#3a3a3a"
-# Each to-do sits on a card one shade lighter than the widget, so items are told apart without lines.
-CARD, CARD_R, CARD_GAP = "#222222", 8, 8
+# The widgets' theme (W1), shared with the usage widget: a near-black card, a soft indigo accent, and colours that
+# mean something, here each project its own colour.
+BG, FIELD, TEXT, MUTED, TRACK = "#0b0e15", "#1a1e29", "#ededed", "#a3a3a3", "#262b38"
+# Each to-do sits on a card one shade lighter than the widget, with a lighter top edge catching the light.
+CARD, CARD_EDGE, CARD_R, CARD_GAP = "#141925", "#252b3a", 8, 8
 BOX, BOX_R = 16, 5
-# The accent takes one colour a day, round the rainbow from Monday's red to Sunday's violet, like the usage widget.
-RAINBOW = ("#ff453a", "#ff9f0a", "#ffd60a", "#30d158", "#0a84ff", "#5e5ce6", "#bf5af2")
+ACCENT = "#8b7cfa"
+PROJECT_COLOURS = ("#ff9f0a", "#5eead4", "#30d158", "#64a8ff", "#c88cff", "#ff6b8b", "#ffd60a")
 FONT_DIR = Path(__file__).resolve().parent / "fonts"
 FR_PRIVATE = 0x10
 
@@ -78,8 +79,14 @@ ERROR_ALREADY_EXISTS = 183
 DWMWA_WINDOW_CORNER_PREFERENCE, DWMWCP_ROUND, DWMWA_BORDER_COLOR, DWMWA_COLOR_NONE = 33, 2, 34, 0xFFFFFFFE
 
 
-def day_colour(day):
-    return RAINBOW[day.weekday()]
+def project_colour(name):
+    """The same colour for a project every time, picked from its name."""
+    return PROJECT_COLOURS[sum(map(ord, name)) % len(PROJECT_COLOURS)]
+
+
+def tint(colour, t=0.16):
+    """A project's colour faded into a card, for the chip behind its name."""
+    return hex_colour(mix(rgb(CARD), rgb(colour), t))
 
 
 def luminance(colour):
@@ -258,7 +265,7 @@ class Widget:
         self.root.configure(bg=BG)
         self.scale = self.root.winfo_fpixels("1i") / 96
         self.grouped = self.saved_view()
-        self.accent = day_colour(date.today())
+        self.accent = ACCENT
         self.pictures = {}
         self.style()
         self.build()
@@ -307,8 +314,6 @@ class Widget:
         style.configure("Slim.Vertical.TScrollbar", troughcolor=BG, background=TRACK, bordercolor=BG,
                         lightcolor=TRACK, darkcolor=TRACK, gripcount=0, arrowsize=self.px(6))
         style.map("Slim.Vertical.TScrollbar", background=[("active", MUTED)])
-        # shortcut: a drop-down list already opened keeps the day it was opened on until restart; fine for a
-        # selection colour, recolour the open lists if it ever shows.
         for option, value in (("background", FIELD), ("foreground", TEXT), ("selectBackground", self.accent),
                               ("selectForeground", ink(self.accent)), ("font", BODY)):
             self.root.option_add(f"*TCombobox*Listbox.{option}", value)
@@ -508,9 +513,7 @@ class Widget:
         self.root.after(500, self.stay_on_desktop)
 
     def poll(self):
-        """Pick up changes made outside the widget, such as items Claude adds, and the new day's colour."""
-        if day_colour(date.today()) != self.accent:
-            self.recolour()
+        """Pick up changes made outside the widget, such as items Claude adds."""
         key = file_key()
         if key != self.seen or self.problem:
             self.seen = key
@@ -529,17 +532,6 @@ class Widget:
         if stale:
             self.change(lambda items: todos.tidy(items, datetime.now()))
         self.root.after(POLL_MS, self.poll)
-
-    def recolour(self):
-        self.accent = day_colour(date.today())
-        self.style()
-        self.set_button(self.plus, fill=self.accent)
-        self.set_button(self.save_button, fill=self.accent)
-        self.set_button(self.undo_button, fill=self.accent)
-        self.status.configure(fg=self.accent)
-        self.notes_box.configure(selectbackground=self.accent, selectforeground=ink(self.accent),
-                                 highlightcolor=self.accent)
-        self.render()
 
     def change(self, update):
         """Apply an edit to the file as it is now, so items Claude added meanwhile are kept."""
@@ -607,7 +599,7 @@ class Widget:
         p = self.px
         for n, (name, group) in enumerate(groups):
             if view is None and name:
-                tk.Label(self.list, text=name, bg=BG, fg=MUTED, font=GROUP, anchor="w").pack(
+                tk.Label(self.list, text=name, bg=BG, fg=project_colour(name), font=GROUP, anchor="w").pack(
                     fill="x", pady=(p(8) if n else 0, p(4)))
             for item in group:
                 self.row(item, tag=item["project"] if view is None and not name else "")
@@ -645,7 +637,8 @@ class Widget:
         parts = [tk.Label(card, text=item["text"], bg=CARD, fg=MUTED if item["done"] else TEXT,
                           font=DONE if item["done"] else BODY, wraplength=wrap, justify="left", anchor="w")]
         if tag:
-            parts.append(tk.Label(card, text=tag, bg=CARD, fg=MUTED, font=GROUP, anchor="w"))
+            colour = project_colour(tag)
+            parts.append(tk.Label(card, text=tag, bg=tint(colour), fg=colour, font=GROUP, anchor="w", padx=p(5)))
         if item["notes"]:
             parts.append(tk.Label(card, text=item["notes"], bg=CARD, fg=MUTED, font=SMALL, wraplength=wrap,
                                   justify="left", anchor="w"))
@@ -661,7 +654,10 @@ class Widget:
                     r, r, ("corner", right, bottom), lambda: corner_rows(r, right, bottom, CARD, BG)))
                 corner.place(relx=float(right), rely=float(bottom), anchor=("s" if bottom else "n") + ("e" if right else "w"))
                 corners.append(corner)
-        for part in (card, *parts, *corners):
+        # The top edge catches the widget's light; it stops short of the rounded corners.
+        edge = tk.Frame(card, bg=CARD_EDGE, height=max(1, p(1)), cursor="hand2")
+        edge.place(x=p(CARD_R), y=0, relwidth=1, width=-2 * p(CARD_R))
+        for part in (card, edge, *parts, *corners):
             part.bind("<Button-1>", lambda e: self.open_editor(item))
 
     def box_image(self, fill, keep=True):

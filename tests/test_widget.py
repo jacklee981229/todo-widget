@@ -1,16 +1,17 @@
 import unittest
-from datetime import date
 
-from widget import BG, RAINBOW, contrast, day_colour, ease_frames, ink, spring_frames
+from widget import ACCENT, BG, PROJECT_COLOURS, contrast, ease_frames, ink, project_colour, spring_frames, tint
 
 
-class DayColourTest(unittest.TestCase):
-    def test_a_week_goes_round_the_rainbow_from_monday(self):
-        week = [day_colour(date(2026, 10, 19 + i)) for i in range(7)]  # Monday 19 Oct to Sunday 25 Oct
-        self.assertEqual(week, list(RAINBOW))
+class ProjectColourTest(unittest.TestCase):
+    def test_a_project_keeps_its_colour(self):
+        self.assertEqual(project_colour("jacks-space"), project_colour("jacks-space"))
+        self.assertIn(project_colour("Jack"), PROJECT_COLOURS)
 
-    def test_next_monday_starts_again(self):
-        self.assertEqual(day_colour(date(2026, 10, 26)), RAINBOW[0])
+    def test_every_project_name_reads_on_its_chip_and_on_the_widget(self):
+        for colour in PROJECT_COLOURS:
+            self.assertGreaterEqual(contrast(colour, tint(colour)), 4.5, colour)
+            self.assertGreaterEqual(contrast(colour, BG), 4.5, colour)
 
 
 class InkTest(unittest.TestCase):
@@ -18,9 +19,9 @@ class InkTest(unittest.TestCase):
         self.assertEqual(ink("#ffd60a"), BG)
         self.assertEqual(ink("#5e5ce6"), "#ffffff")
 
-    def test_every_day_reads_at_least_4_5_to_1(self):
-        for colour in RAINBOW:
-            self.assertGreaterEqual(contrast(ink(colour), colour), 4.5, colour)
+    def test_the_accent_reads_at_least_4_5_to_1(self):
+        self.assertGreaterEqual(contrast(ink(ACCENT), ACCENT), 4.5)
+        self.assertGreaterEqual(contrast(ACCENT, BG), 4.5)
 
     def test_contrast_matches_wcag_black_on_white(self):
         self.assertAlmostEqual(contrast("#000000", "#ffffff"), 21)
