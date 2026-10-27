@@ -1,59 +1,98 @@
+<div align="center">
+
 # To-do widget
 
-A small to-do list on your desktop for your personal projects. You add to it, and so does Claude when you ask it to; Claude also ticks items off when their work is committed and pushed.
+**English** | [简体中文](README.zh-CN.md)
 
-- Each to-do has a project and can have notes, such as where you left off. The box at the top shows all projects or just one.
-- It sits just above the desktop, behind all your windows, like the usage widget. Win+D (or a click on the desktop) brings it to the front, and you can click it to type. It stays out of the taskbar and Alt+Tab.
-- It starts when you sign in to Windows.
-- It matches the usage widget: the same dark card, and an accent (the **+**, ticks, Save) that changes colour each day, round the rainbow from red on Monday to violet on Sunday.
-- Both widgets use Hanken Grotesk, under the SIL Open Font License, from `fonts\`. Only the widget loads it, so nothing is installed in Windows; without the files it falls back to Segoe UI.
-- Every change is saved in `data\todos.json`. The widget checks that file every 2 seconds, so items Claude adds appear on their own.
+A small to-do list on your Windows desktop that Claude can write to:<br>it adds items when you ask, and ticks them off when their work is pushed.
 
-## Use it
+<img src=".github/readme/grouped.png" width="300" alt="The widget: four open to-dos grouped under three projects, each project in its own colour">
 
-- **Add:** click **+**, type the to-do, pick or type a project, and add notes if you like. Enter saves, Esc cancels. In a one-project view, the project is filled in for you.
-- **Tick:** click the box. For 5 seconds after a tick, **Undo** at the bottom brings the item back. Ticked items move below a line under the open ones, struck through, the latest ticked first. A week after its tick, an item moves to `data\archive.json`, which keeps it; ask Claude to bring one back. The line hides them: click **Expand** to show them and **Collapse** to hide them again. The widget always starts with them hidden.
-- **Edit or delete:** click the item. Delete asks for a second click.
-- **Grouped or one list:** click **Group** in the header. Coloured means grouped under project headings; grey means one list, oldest first, with each item's project in small grey letters under it (hidden when the box shows one project). The widget starts the way you left it.
-- **Move or exit:** drag the header to move it; it reopens where you left it. Right-click the header and choose Exit.
+</div>
 
-The Project box suggests your project folders (any folder in `C:\repos\Jack` with a CLAUDE.md, README.md or TESTING.md) and the names you've already used. Any name works.
+## What it looks like
 
-## Commands
+<table>
+  <tr>
+    <td align="center" width="25%"><img src=".github/readme/list.png" alt="One list, each to-do with its project in a coloured tag"></td>
+    <td align="center" width="25%"><img src=".github/readme/ticked.png" alt="Ticked to-dos below the line, struck through"></td>
+    <td align="center" width="25%"><img src=".github/readme/adding.png" alt="The form for a new to-do: the text, its project and notes"></td>
+    <td align="center" width="25%"><img src=".github/readme/undo.png" alt="Undo at the bottom, just after a tick"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>One list</b><br>Group off: oldest first, each with its project.</td>
+    <td align="center"><b>Done</b><br>Expand shows what's ticked, the latest first.</td>
+    <td align="center"><b>Add</b><br>The to-do, its project and notes.</td>
+    <td align="center"><b>Undo</b><br>For 5 seconds after a tick.</td>
+  </tr>
+</table>
 
-Run these in PowerShell from this folder:
+## Features
 
-| Command | Does |
-|---|---|
-| `pythonw widget.py` | Start the widget, without a console window |
-| `python todos.py add <project> "<text>" --notes "<notes>"` | Add a to-do (`--notes` is optional) |
-| `python todos.py done <project> "<text>"` | Tick off the open to-do with exactly this project and text |
-| `python -m unittest discover -s tests` | Run the tests |
+- **Claude keeps it up to date.** Any Claude Code session can add or tick a to-do with one command; the widget shows it within 2 seconds.
+- **Every project its own colour,** on its heading and its tag. The box at the top shows all projects or just one.
+- **Stays out of the way.** It sits on the desktop behind your windows, comes forward on Win+D, and stays out of the taskbar and Alt+Tab.
+- **Nothing to install.** Python and tkinter only, no packages. Your list is one file, `data\todos.json`.
 
-## Adding or ticking a to-do from a Claude session
+## Quick start
 
-Run the add command with the full path, so it works from any folder. Use the session's project folder name as the project:
-
-```powershell
-python C:\repos\Jack\todo-widget\todos.py add lan-drop 'Pick a port for the server' --notes 'Tried 8080; Trae uses it'
-```
-
-It prints `Added to lan-drop: Pick a port for the server`. In PowerShell, wrap the text in single quotes and double any single quote inside it (`'Jack''s list'`). If `todos.json` can't be read, it prints `Not added: …` and changes nothing.
-
-To tick one off, give the same project and the item's exact text:
+In PowerShell, from this folder:
 
 ```powershell
-python C:\repos\Jack\todo-widget\todos.py done jacks-space 'Plan: 2048 Bot'
+pythonw widget.py
 ```
 
-It prints `Ticked in jacks-space: Plan: 2048 Bot`. If no open item has that text, or more than one does, it prints `Not ticked: …` and changes nothing.
+Click **+** to add a to-do (Enter saves, Esc cancels) and click its box to tick it. Drag the header to move it; right-click the header to exit.
 
-## Start with Windows
+Add or tick from Claude, or from any terminal:
 
-A shortcut named `To-do widget` in your Startup folder starts the widget when you sign in (press Win+R and type `shell:startup` to see it). Delete the shortcut to stop that.
+```powershell
+python C:\path\to\todo-widget\todos.py add jacks-space 'Write up the trip' --notes 'Photos picked'
+python C:\path\to\todo-widget\todos.py done jacks-space 'Write up the trip'
+```
 
-The shortcut runs `To-do.exe`, a copy of Python's `pythonw.exe` beside it in the Python folder, renamed so Task Manager lists the widget as "To-do" instead of Python. It still runs `widget.py` from this folder, so a code change needs only a restart. Reinstalling Python or moving this folder breaks the shortcut; close the widget (right-click, Exit), then run this from this folder to make both again:
+To start the widget when you sign in to Windows:
 
 ```powershell
 python startup.py
 ```
+
+<details>
+<summary><b>Using it</b></summary>
+
+- **Add:** click **+**, type the to-do, pick or type a project, and add notes if you like. In a one-project view, the project is filled in for you. The Project box suggests your project folders (any folder next to this one with a CLAUDE.md, README.md or TESTING.md) and the names you've used; any name works.
+- **Tick:** click the box. Ticked items move below a line, struck through, the latest first; **Expand** shows them and **Collapse** hides them, and the widget always starts with them hidden. A week after its tick, an item moves to `data\archive.json`, which keeps it.
+- **Edit or delete:** click the item. Delete asks for a second click.
+- **Grouped or one list:** click **Group** in the header. The widget starts the way you left it, where you left it.
+
+</details>
+
+<details>
+<summary><b>Adding or ticking from a Claude session</b></summary>
+
+Use the full path, so it works from any folder, and the session's project folder name as the project. `add` prints `Added to jacks-space: …`; `done` needs the exact text of one open item and prints `Ticked in jacks-space: …`. If the file can't be read, or no single item matches, it prints `Not added: …` or `Not ticked: …` and changes nothing.
+
+In PowerShell, wrap the text in single quotes and double any single quote inside it (`'Jack''s list'`).
+
+</details>
+
+<details>
+<summary><b>Start with Windows</b></summary>
+
+`python startup.py` puts a shortcut named `To-do widget` in your Startup folder (Win+R, `shell:startup`). Delete it to stop.
+
+The shortcut runs `To-do.exe`, a renamed copy of Python's `pythonw.exe`, so Task Manager lists the widget as "To-do". It still runs `widget.py` from this folder, so a code change needs only a restart. Reinstalling Python or moving this folder breaks it: exit the widget and run `python startup.py` again. Only one copy runs at a time.
+
+</details>
+
+<details>
+<summary><b>Development</b></summary>
+
+| Command | Does |
+|---|---|
+| `python -m unittest discover -s tests` | Run the tests |
+| `python scratch\shoot.py .github\readme` | Remake these screenshots, from a copy of the widget with test to-dos |
+
+The text is in Hanken Grotesk (SIL Open Font License), loaded from `fonts\` for the widget only; without it, Segoe UI. It shares its look with the [Claude usage widget](https://github.com/jacklee981229/claude-usage-widget).
+
+</details>
