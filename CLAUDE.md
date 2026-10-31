@@ -9,4 +9,3 @@ Jack's desktop to-do widget (Python + tkinter, no packages). The README covers w
 - Type: Hanken Grotesk (bundled in `fonts/`).
 - Shapes: rounded cards and tick boxes; Windows 11 rounded corners.
 - Elements: A (dark ground with light), B (colours that mean something).
-- Looks we don't use: a web (WebView2) window. It took about 207 MB against tkinter's 20 MB; small tools stay light.
